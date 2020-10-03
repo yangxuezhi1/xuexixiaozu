@@ -116,7 +116,6 @@ class get_railway_ticket_quantity(object):
         self.headers['cookie'] = '_uab_collina=160153499209807069222547; JSESSIONID=9EBC15785AD52BFE3F4814B4C65C5ADA; RAIL_EXPIRATION=1601854054075; RAIL_DEVICEID=IcQgD4pCzq8fJ_lpsXcgE7ZLjdp66oEVJz9BgVd-acPYHXMrRLigkuTIcMacH-6i714KVnDdGLvVkp1uT4HKxshUA7eZyMMZErMiCSjN2oFw3C487v_X_kgcnC0SuEenMhA7HI9PBcJltqi2731PqdDgkpM2fGt9; _jc_save_wfdc_flag=dc; _jc_save_fromStation=%u5E7F%u5DDE%2CGZQ; _jc_save_toStation=%u6DF1%u5733%2CSZQ; _jc_save_fromDate=2020-10-17; route=6f50b51faa11b987e576cdb301e545c4; BIGipServerotn=66060810.24610.0000; _jc_save_toDate=2020-10-03'
         response = requests.get(self.url, params=self.params, headers=self.headers)
         if response.status_code == 200:
-            print(response.text)
             try:
                 dic = json.loads(response.text)
             except json.decoder.JSONDecodeError:
