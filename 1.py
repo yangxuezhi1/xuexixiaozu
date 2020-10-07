@@ -1,79 +1,66 @@
-from json import loads
-import csv
-from time import sleep
-
+from tools import Base64_Encryption as BE
 from requests import get
-from urllib.request import urlretrieve
+from lxml import etree
+from json import loads
+import time
+
 
 headers = {
-    'User-Agent': 'Mozilla / 5.0(Windows NT 10.0;WOW64) AppleWebKit / 537.36(KHTML, likeGecko) Chrome / 78.0.3904.108Safari / 537.36',
-    'Connection': 'close'
-}
-
-def 任务一():
-    url = 'http://t.yushu.im/v2/movie/subject/3'
-    js_txt = get(url, headers=headers)
-    if js_txt.status_code == 200:
-        txt = loads(js_txt.text)
-        image_url = txt['images']['large']
-        file_title = txt['original_title']
-        urlretrieve(image_url, f'{file_title}.jpg') #方法一
-    # img_file = get(image_url, headers=headers,stream=True)
-    # if img_file.status_code == 200:
-    #      with open(f'{file_title}.jpg', 'wb') as f:
-    #         for c in img_file.iter_content(chunk_size=1024):    #方法二
-    #             f.write(c)
-    # #         f.write(img_file.content)    #方法三
-    print('Pass')
-
-
-
-def 任务二(city,file_name,size='a+',encod='utf-8',newl=''):
-    海报图片 = {}
-    params = {
-        'start': city
+        'User-Agent': 'Mozilla / 5.0(Windows NT 10.0;WOW64) AppleWebKit / 537.36(KHTML, likeGecko) Chrome / 78.0.3904.108Safari / 537.36',
+        'Connection': 'close'
     }
-    f_csv_lst = ['电影序号', '电影标题', '电影评分', '电影分类', '导演名字', '电影主演', '电影海报URL']
-    with open(file_name, size, encoding=encod, newline=newl) as f:
-        f_csv = csv.writer(f)
-        if city == 0:
-            f_csv.writerow(f_csv_lst)
-    url = 'http://t.yushu.im/v2/movie/top250'
-    js_txt = get(url, params=params, headers=headers)
-    if js_txt.status_code == 200:
-        txt = loads(js_txt.text)
-        subjects = txt['subjects']
-        for data in subjects:
-            电影序号 = data['comments_count']
-            导演名字 = data['directors'][0]['name']
-            电影标题 = data['title']
-            电影评分 = data['rating']['average']
-            电影分类 = ','.join(data['genres'])
-            电影海报URL = data['images']['large']
-            lst = data['casts']
-            电影主演 = ','.join([i['name'] for i in lst])
-            海报图片[电影序号] = 电影海报URL
-            with open(file_name, size, encoding=encod, newline=newl) as f:
-                f_csv = csv.writer(f)
-                f_csv.writerow([电影序号, 电影标题, 电影评分, 电影分类, 导演名字, 电影主演, 电影海报URL])
-    return 海报图片
+name = []
+id = []
+content = []
+agree = []
+refuse = []
+tucao_lst = []
+def get_qa_html(url):
+    print(f'GET {url} ing')
+    html_res = get(url, headers=headers)
+    html_res.encoding = 'utf-8'
+    html = etree.HTML(html_res.text)
+    li_lst = html.xpath('//ol[@class="commentlist"]/li')
+    for i in li_lst:
+        name.append(i.xpath('./div/div/div[1]/strong/text()')[0])
+        id.append(str(i.xpath('./div/div/div[2]/span/a/text()')[0]))
+        content.append(i.xpath('./div/div/div[2]/p/text()')[0])
+        agree.append(i.xpath('./div/div/div[3]/span[2]/span/text()')[0])
+        refuse.append(i.xpath('./div/div/div[3]/span[3]/span/text()')[0])
+    url0 = html.xpath('.//a[@title="Newer Comments"]/@href')
+    if url0 != []:
+        url0 = url0[0].split('#')[0]
+        return f'https:{url0}'
+    else:
+        return ''
 
-def 任务三(item):
-    """
-    :param item: 字典格式文件
-    :return:
-    """
-    for k,v in item.items():
-        img_file = get(v, headers=headers, stream=True)
-        if img_file.status_code == 200:
-            with open(f'D:\\Python Files\\Pythonobj\\学习小组\\任务二\\images\\{k}.jpg', 'wb') as f:
-                for c in img_file.iter_content(chunk_size=1024):    #方法二
-                    f.write(c)
-        sleep(0.5)
+def get_secondary_label(url):
+    tucao = []
+    res_text = get(url, headers=headers)
+    js_tx = loads(res_text.text)
+    for i in js_tx['tucao']:
+        tucao.append(','.join([i['comment_author'], i['comment_content'].replace('\n', '')]))
+    print(tucao)
+    return tucao
 
+def app():
+    now_time = time.localtime(time.time())
+    day = time.strftime('%Y%m%d', now_time)
+    url = 'https://jandan.net/qa/' + BE(f'{day}-1')
+    while True:
+        url = get_qa_html(url)
+        time.sleep(0.5)
+        if url != '':
+            pass
+        else:
+            break
+    print(len(name), len(id), len(content), len(agree), len(refuse))
+    for i in range(len(id)):
+        url1 = f'https://jandan.net/api/tucao/list/{id[i]}'
+        tucao_lst.append(list(get_secondary_label(url1)))
+        time.sleep(0.5)
+    for i in range(len(id)):
+        print(f'{name[i]},{id[i]},{content[i]},{agree[i]},{refuse[i]},{tucao_lst[i]}')
 
 if __name__ == '__main__':
-    for i in range(13):
-        it = 任务二(i*20, 'top250.csv')
-        任务三(it)
-    print('pass!')
+    app()
